@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "30984973933",
+    "project_id": "audiobay",
+    "storage_bucket": "audiobay.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:30984973933:android:8a9296a5b4709f20805964",
+        "android_client_info": {
+          "package_name": "com.audiobay"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "30984973933-tq1tfpeb2qo3k8v8jl2srb6n395lnmr2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDUDw8nZ82-TK2IEi0B8g-OJdQ9SGX1ZxE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "30984973933-tq1tfpeb2qo3k8v8jl2srb6n395lnmr2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
