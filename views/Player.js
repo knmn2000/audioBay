@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useCallback} from 'react';
 import {
   Button,
   makeStyles,
@@ -6,14 +6,21 @@ import {
   useTheme,
   Card,
   Tile,
+  Slider,
 } from 'react-native-elements';
 import {TouchableOpacity, View} from 'react-native';
 import TrackPlayer, {getRate, setRate} from 'react-native-track-player';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import {CircularSlider as CircularSliderUniverse} from 'react-native-elements-universe';
 
 TrackPlayer.updateOptions({
   stopWithApp: false,
-  capabilities: [TrackPlayer.CAPABILITY_PLAY, TrackPlayer.CAPABILITY_PAUSE],
+  capabilities: [
+    TrackPlayer.CAPABILITY_PLAY,
+    TrackPlayer.CAPABILITY_PAUSE,
+    TrackPlayer.CAPABILITY_JUMP_BACKWARD,
+    TrackPlayer.CAPABILITY_JUMP_FORWARD,
+  ],
   compactCapabilities: [
     TrackPlayer.CAPABILITY_PLAY,
     TrackPlayer.CAPABILITY_PAUSE,
@@ -103,7 +110,6 @@ const track = [
 ];
 
 export default function Player(props) {
-  console.log(props.navigation);
   useEffect(() => {
     (async () => {
       await TrackPlayer.setupPlayer({}).then(() => {
@@ -113,7 +119,6 @@ export default function Player(props) {
       //   TrackPlayer.registerPlaybackService(() => TrackPlayerServices);
 
       await TrackPlayer.add(track);
-
       setTimeout(() => {
         TrackPlayer.stop();
       }, 2000);
@@ -123,6 +128,12 @@ export default function Player(props) {
   const {theme} = useTheme();
   const styles = useStyles(theme, props);
   const [playing, setPlaying] = useState(false);
+  const [currentTrack, setCurrentTrack] = useState();
+  useEffect(() => {
+    if (currentTrack) {
+      getCurrentTrack();
+    }
+  }, [currentTrack, getCurrentTrack]);
   const handlePlaybutton = () => {
     setPlaying(!playing);
     return playing ? TrackPlayer.pause() : TrackPlayer.play();
@@ -132,6 +143,13 @@ export default function Player(props) {
       setRate(rate + sign * 0.25);
     });
   };
+  const getCurrentTrack = useCallback(async () => {
+    const index = await TrackPlayer.getCurrentTrack().then(
+      currTrack => currTrack,
+    );
+    setCurrentTrack(index);
+    console.log(index);
+  }, [setCurrentTrack]);
   return (
     <View style={styles.body}>
       <View style={styles.emptyBox} />
@@ -139,13 +157,27 @@ export default function Player(props) {
         <Card.Title>{track.title}</Card.Title>
         <Card.Divider />
         <View style={styles.playbackPic}>
-          <Tile
+          {/* <Tile
             imageSrc={{
               uri: 'https://static01.nyt.com/images/2016/09/28/us/17xp-pepethefrog_web1/28xp-pepefrog-articleLarge.jpg?quality=75&auto=webp&disable=upscale',
             }}
             containerStyle={{
               width: '100%',
             }}
+          /> */}
+          {/* <CircularSlider value={10} onChange={() => {}} /> */}
+          {/* <CircularSliderUniverse
+            value={10}
+            onChange={() => {}}
+            showThumbText
+          /> */}
+          <Text>{currentTrack ? currentTrack.title : ''}</Text>
+          <Slider
+            value={10}
+            onValueChange={() => console.log(currentTrack)}
+            maximumValue={100}
+            minimumValue={0}
+            // thumbProps={{}}
           />
         </View>
         <View style={styles.buttonContainer}>
@@ -153,12 +185,14 @@ export default function Player(props) {
             <Icon
               name="skip-previous"
               size={45}
-              onPress={() => TrackPlayer.pause()}
+              onPress={async () =>
+                await TrackPlayer.skipToPrevious().then(getCurrentTrack())
+              }
             />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.textButton}
-            onPress={() => handleRateChange(1)}>
+            onPress={() => handleRateChange(-1)}>
             <Text h4 h4Style={styles.numberText}>
               +0.25
             </Text>
@@ -168,7 +202,7 @@ export default function Player(props) {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.textButton}
-            onPress={() => TrackPlayer.skipToNext()}>
+            onPress={() => handleRateChange(1)}>
             {/* <Text style={{fontSize: 15}}>+0.25</Text> */}
             <Text h4 h4Style={styles.numberText}>
               +0.25
@@ -176,7 +210,9 @@ export default function Player(props) {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.button}
-            onPress={() => handleRateChange(-1)}>
+            onPress={async () =>
+              await TrackPlayer.skipToNext().then(getCurrentTrack())
+            }>
             <Icon name="skip-next" size={45} />
           </TouchableOpacity>
         </View>
