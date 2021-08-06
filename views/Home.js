@@ -1,6 +1,13 @@
 import React, {useEffect} from 'react';
-import {Button, makeStyles, Text, useTheme} from 'react-native-elements';
+import {
+  Button,
+  ListItem,
+  makeStyles,
+  Text,
+  useTheme,
+} from 'react-native-elements';
 import {View} from 'react-native';
+import track from '../temp';
 
 const useStyles = makeStyles((theme, props) => ({
   body: {
@@ -43,6 +50,17 @@ export default function Home({navigation}) {
           title="goto player"
           onPress={() => navigation.navigate('Player')}
         />
+        {track.map((l, i) => (
+          <ListItem
+            key={i}
+            bottomDivider
+            onPress={() => navigation.navigate('Player', {trackIndex: i})}>
+            <ListItem.Content>
+              <ListItem.Title>{l.title}</ListItem.Title>
+              <ListItem.Subtitle>{l.author}</ListItem.Subtitle>
+            </ListItem.Content>
+          </ListItem>
+        ))}
       </View>
     </View>
   );

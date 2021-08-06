@@ -12,7 +12,7 @@ import {TouchableOpacity, View} from 'react-native';
 import TrackPlayer, {getRate, setRate} from 'react-native-track-player';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {CircularSlider as CircularSliderUniverse} from 'react-native-elements-universe';
-
+import track from '../temp';
 TrackPlayer.updateOptions({
   stopWithApp: false,
   capabilities: [
@@ -28,7 +28,7 @@ TrackPlayer.updateOptions({
   jumpInterval: 10,
 });
 
-const useStyles = makeStyles((theme, props) => ({
+const useStyles = makeStyles(theme => ({
   body: {
     flex: 1,
     backgroundColor: theme.colors.whitish,
@@ -93,23 +93,7 @@ const useStyles = makeStyles((theme, props) => ({
   },
 }));
 
-const track = [
-  {
-    id: '1',
-    // url: 'https://ia600204.us.archive.org/11/items/hamlet_0911_librivox/hamlet_act5_shakespeare.mp3',
-    url: 'https://firebasestorage.googleapis.com/v0/b/audiobay.appspot.com/o/deepwork.m4a?alt=media&token=eb99cd46-578d-4b3f-96d9-8ac1b9b5c46a',
-    title: 'deepwork',
-    artist: 'cal newport',
-  },
-  {
-    id: '2',
-    url: 'https://ia600204.us.archive.org/11/items/hamlet_0911_librivox/hamlet_act5_shakespeare.mp3',
-    title: 'shakespear play',
-    artist: 'shanky',
-  },
-];
-
-export default function Player(props) {
+export default function Player({trackIndex}) {
   useEffect(() => {
     (async () => {
       await TrackPlayer.setupPlayer({}).then(() => {
@@ -126,9 +110,9 @@ export default function Player(props) {
   }, []);
 
   const {theme} = useTheme();
-  const styles = useStyles(theme, props);
+  const styles = useStyles(theme);
   const [playing, setPlaying] = useState(false);
-  const [currentTrack, setCurrentTrack] = useState();
+  const [currentTrack, setCurrentTrack] = useState(track[trackIndex]);
   useEffect(() => {
     if (currentTrack) {
       getCurrentTrack();
@@ -143,12 +127,21 @@ export default function Player(props) {
       setRate(rate + sign * 0.25);
     });
   };
+  const handleTrackChange = useCallback(
+    async direction => {
+      if (direction === 'next') {
+        await TrackPlayer.skipToNext().then(() => getCurrentTrack());
+      } else {
+        await TrackPlayer.skipToPrevious().then(() => getCurrentTrack());
+      }
+    },
+    [getCurrentTrack],
+  );
   const getCurrentTrack = useCallback(async () => {
     const index = await TrackPlayer.getCurrentTrack().then(
       currTrack => currTrack,
     );
-    setCurrentTrack(index);
-    console.log(index);
+    setCurrentTrack(track[index - 1]);
   }, [setCurrentTrack]);
   return (
     <View style={styles.body}>
@@ -157,21 +150,13 @@ export default function Player(props) {
         <Card.Title>{track.title}</Card.Title>
         <Card.Divider />
         <View style={styles.playbackPic}>
-          {/* <Tile
-            imageSrc={{
-              uri: 'https://static01.nyt.com/images/2016/09/28/us/17xp-pepethefrog_web1/28xp-pepefrog-articleLarge.jpg?quality=75&auto=webp&disable=upscale',
-            }}
-            containerStyle={{
-              width: '100%',
-            }}
-          /> */}
           {/* <CircularSlider value={10} onChange={() => {}} /> */}
           {/* <CircularSliderUniverse
             value={10}
             onChange={() => {}}
             showThumbText
           /> */}
-          <Text>{currentTrack ? currentTrack.title : ''}</Text>
+          <Text>{currentTrack ? currentTrack.title : 'null'}</Text>
           <Slider
             value={10}
             onValueChange={() => console.log(currentTrack)}
@@ -185,9 +170,7 @@ export default function Player(props) {
             <Icon
               name="skip-previous"
               size={45}
-              onPress={async () =>
-                await TrackPlayer.skipToPrevious().then(getCurrentTrack())
-              }
+              onPress={() => handleTrackChange('prev')}
             />
           </TouchableOpacity>
           <TouchableOpacity
@@ -210,37 +193,12 @@ export default function Player(props) {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.button}
-            onPress={async () =>
-              await TrackPlayer.skipToNext().then(getCurrentTrack())
-            }>
+            onPress={() => handleTrackChange('next')}>
             <Icon name="skip-next" size={45} />
           </TouchableOpacity>
         </View>
       </Card>
       <View style={styles.emptyBox} />
-      {/* <View style={styles.player}>
-        <View>
-          <Text style={styles.playbackInfo}>{track.title}</Text>
-          <Text style={styles.playbackInfo}>{track.artist}</Text>
-        </View>
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.button}>
-            <Icon
-              name="skip-previous"
-              size={45}
-              onPress={() => TrackPlayer.pause()}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.button} onPress={handlePlaybutton}>
-            <Icon name={playing ? 'pause' : 'play-arrow'} size={45} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => TrackPlayer.play()}>
-            <Icon name="skip-next" size={45} />
-          </TouchableOpacity>
-        </View>
-      </View> */}
     </View>
   );
 }
