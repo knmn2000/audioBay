@@ -1,4 +1,5 @@
 import React, {useEffect, useState, useCallback} from 'react';
+import {useFocusEffect} from '@react-navigation/native';
 import {
   Button,
   makeStyles,
@@ -93,31 +94,15 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-export default function Player({trackIndex}) {
-  useEffect(() => {
-    (async () => {
-      await TrackPlayer.setupPlayer({}).then(() => {
-        console.log('player is setup');
-      });
-
-      //   TrackPlayer.registerPlaybackService(() => TrackPlayerServices);
-
-      await TrackPlayer.add(track);
-      setTimeout(() => {
-        TrackPlayer.stop();
-      }, 2000);
-    })();
-  }, []);
-
+export default function Player(props) {
+  const [trackDuration, setDuration] = useState();
   const {theme} = useTheme();
   const styles = useStyles(theme);
   const [playing, setPlaying] = useState(false);
-  const [currentTrack, setCurrentTrack] = useState(track[trackIndex]);
-  useEffect(() => {
-    if (currentTrack) {
-      getCurrentTrack();
-    }
-  }, [currentTrack, getCurrentTrack]);
+  const [position, setPosition] = useState(0);
+  const [currentTrack, setCurrentTrack] = useState(
+    track[props.route.params.trackIndex],
+  );
   const handlePlaybutton = () => {
     setPlaying(!playing);
     return playing ? TrackPlayer.pause() : TrackPlayer.play();
@@ -127,22 +112,47 @@ export default function Player({trackIndex}) {
       setRate(rate + sign * 0.25);
     });
   };
-  const handleTrackChange = useCallback(
-    async direction => {
-      if (direction === 'next') {
-        await TrackPlayer.skipToNext().then(() => getCurrentTrack());
-      } else {
-        await TrackPlayer.skipToPrevious().then(() => getCurrentTrack());
+  // const getCurrentTrack = useCallback(async () => {
+  //   const index = await TrackPlayer.getCurrentTrack().then(
+  //     currTrack => currTrack,
+  //   );
+  //   setCurrentTrack(track[index - 1]);
+  // }, [setCurrentTrack]);
+  const skip = async amount => {
+    await TrackPlayer.getPosition().then(async pos => {
+      await TrackPlayer.seekTo(pos + amount);
+    });
+  };
+  const [cleanUp, setCleanup] = useState(false);
+  var timeouts = [];
+  // ADD USEMEMO
+  // FIX POSITIONING
+  // FIX SLIDER
+
+  const getCurrentPos = useCallback(async () => {
+    const pos = await TrackPlayer.getPosition();
+    setPosition(pos / trackDuration);
+    console.log(position);
+    if (!cleanUp) {
+      timeouts.push(setTimeout(async () => await getCurrentPos(), 1000));
+    }
+  }, [cleanUp, position, timeouts, trackDuration]);
+  useEffect(() => {
+    (async () => {
+      await TrackPlayer.setupPlayer({}).then(() => {
+        console.log('player is setup');
+      });
+      //   TrackPlayer.registerPlaybackService(() => TrackPlayerServices);
+      await TrackPlayer.add(track);
+      await TrackPlayer.getDuration().then(dur => setDuration(dur));
+      getCurrentPos();
+    })();
+    return () => {
+      for (var i = 0; i < timeouts.length; i++) {
+        clearTimeout(timeouts[i]);
       }
-    },
-    [getCurrentTrack],
-  );
-  const getCurrentTrack = useCallback(async () => {
-    const index = await TrackPlayer.getCurrentTrack().then(
-      currTrack => currTrack,
-    );
-    setCurrentTrack(track[index - 1]);
-  }, [setCurrentTrack]);
+    };
+  }, []);
   return (
     <View style={styles.body}>
       <View style={styles.emptyBox} />
@@ -158,8 +168,7 @@ export default function Player({trackIndex}) {
           /> */}
           <Text>{currentTrack ? currentTrack.title : 'null'}</Text>
           <Slider
-            value={10}
-            onValueChange={() => console.log(currentTrack)}
+            value={50}
             maximumValue={100}
             minimumValue={0}
             // thumbProps={{}}
@@ -167,11 +176,7 @@ export default function Player({trackIndex}) {
         </View>
         <View style={styles.buttonContainer}>
           <TouchableOpacity style={styles.button}>
-            <Icon
-              name="skip-previous"
-              size={45}
-              onPress={() => handleTrackChange('prev')}
-            />
+            <Icon name="skip-previous" size={45} onPress={() => skip(-10)} />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.textButton}
@@ -186,14 +191,11 @@ export default function Player({trackIndex}) {
           <TouchableOpacity
             style={styles.textButton}
             onPress={() => handleRateChange(1)}>
-            {/* <Text style={{fontSize: 15}}>+0.25</Text> */}
             <Text h4 h4Style={styles.numberText}>
               +0.25
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => handleTrackChange('next')}>
+          <TouchableOpacity style={styles.button} onPress={() => skip(10)}>
             <Icon name="skip-next" size={45} />
           </TouchableOpacity>
         </View>
