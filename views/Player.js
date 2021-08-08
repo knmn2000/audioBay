@@ -14,6 +14,7 @@ import TrackPlayer, {getRate, setRate} from 'react-native-track-player';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {CircularSlider as CircularSliderUniverse} from 'react-native-elements-universe';
 import track from '../temp';
+import secondsToDuration from '../util/secondsToDuration';
 TrackPlayer.updateOptions({
   stopWithApp: false,
   capabilities: [
@@ -95,7 +96,8 @@ const useStyles = makeStyles(theme => ({
 }));
 
 export default function Player(props) {
-  const [trackDuration, setDuration] = useState();
+  const [trackDuration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
   const {theme} = useTheme();
   const styles = useStyles(theme);
   const [playing, setPlaying] = useState(false);
@@ -123,36 +125,42 @@ export default function Player(props) {
       await TrackPlayer.seekTo(pos + amount);
     });
   };
-  const [cleanUp, setCleanup] = useState(false);
-  var timeouts = [];
-  // ADD USEMEMO
-  // FIX POSITIONING
-  // FIX SLIDER
 
   const getCurrentPos = useCallback(async () => {
-    const pos = await TrackPlayer.getPosition();
-    setPosition(pos / trackDuration);
-    console.log(position);
-    if (!cleanUp) {
-      timeouts.push(setTimeout(async () => await getCurrentPos(), 1000));
-    }
-  }, [cleanUp, position, timeouts, trackDuration]);
+    await TrackPlayer.getPosition().then(async pos => {
+      await TrackPlayer.getDuration().then(dur => {
+        if ((pos / dur) * 100) {
+          setPosition((pos / dur) * 100);
+          setCurrentTime(pos);
+          console.log(secondsToDuration(pos));
+        }
+      });
+    });
+  }, [position]);
+
   useEffect(() => {
     (async () => {
-      await TrackPlayer.setupPlayer({}).then(() => {
-        console.log('player is setup');
-      });
-      //   TrackPlayer.registerPlaybackService(() => TrackPlayerServices);
+      await TrackPlayer.setupPlayer({});
       await TrackPlayer.add(track);
-      await TrackPlayer.getDuration().then(dur => setDuration(dur));
-      getCurrentPos();
     })();
-    return () => {
-      for (var i = 0; i < timeouts.length; i++) {
-        clearTimeout(timeouts[i]);
-      }
+    return async () => {
+      await TrackPlayer.destroy();
     };
   }, []);
+
+  useEffect(() => {
+    (async () => {
+      await TrackPlayer.getDuration().then(dur => {
+        setDuration(secondsToDuration(dur));
+      });
+    })();
+    const interval = setInterval(async () => {
+      await getCurrentPos();
+    }, 1000);
+    return () => {
+      clearInterval(interval);
+    };
+  }, [getCurrentPos]);
   return (
     <View style={styles.body}>
       <View style={styles.emptyBox} />
@@ -167,10 +175,14 @@ export default function Player(props) {
             showThumbText
           /> */}
           <Text>{currentTrack ? currentTrack.title : 'null'}</Text>
+          <Text>
+            {secondsToDuration(currentTime)} / {trackDuration}
+          </Text>
           <Slider
-            value={50}
+            value={position}
             maximumValue={100}
             minimumValue={0}
+            onValueChange={v => console.log(v)}
             // thumbProps={{}}
           />
         </View>
@@ -195,7 +207,7 @@ export default function Player(props) {
               +0.25
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.button} onPress={() => skip(10)}>
+          <TouchableOpacity style={styles.button} onPress={() => skip(1000)}>
             <Icon name="skip-next" size={45} />
           </TouchableOpacity>
         </View>
