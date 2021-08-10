@@ -46,10 +46,6 @@ export default function Home({navigation}) {
         <Text style={{fontSize: theme.test.fontSize}}>hello</Text>
       </View>
       <View style={styles.player}>
-        <Button
-          title="goto player"
-          onPress={() => navigation.navigate('Player')}
-        />
         {track.map((l, i) => (
           <ListItem
             key={i}

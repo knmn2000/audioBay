@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "30984973933-ovke82sflk8vbb82sohllnld1vrbhknj.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.audiobay",
+            "certificate_hash": "ff4c26e9174f57e7e880bd7f2442d56e7e993f30"
+          }
+        },
+        {
           "client_id": "30984973933-tq1tfpeb2qo3k8v8jl2srb6n395lnmr2.apps.googleusercontent.com",
           "client_type": 3
         }
