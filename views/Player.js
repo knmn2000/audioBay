@@ -1,5 +1,4 @@
 import React, {useEffect, useState, useCallback} from 'react';
-import {useFocusEffect} from '@react-navigation/native';
 import {
   Button,
   makeStyles,
@@ -15,25 +14,13 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import {CircularSlider as CircularSliderUniverse} from 'react-native-elements-universe';
 import track from '../temp';
 import secondsToDuration from '../util/secondsToDuration';
-TrackPlayer.updateOptions({
-  stopWithApp: false,
-  capabilities: [
-    TrackPlayer.CAPABILITY_PLAY,
-    TrackPlayer.CAPABILITY_PAUSE,
-    TrackPlayer.CAPABILITY_JUMP_BACKWARD,
-    TrackPlayer.CAPABILITY_JUMP_FORWARD,
-  ],
-  compactCapabilities: [
-    TrackPlayer.CAPABILITY_PLAY,
-    TrackPlayer.CAPABILITY_PAUSE,
-  ],
-  jumpInterval: 10,
-});
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import firestore from '@react-native-firebase/firestore';
 
 const useStyles = makeStyles(theme => ({
   body: {
     flex: 1,
-    backgroundColor: theme.colors.whitish,
+    // backgroundColor: theme.colors.whitish,
   },
   nav: {
     height: '28%',
@@ -97,21 +84,40 @@ const useStyles = makeStyles(theme => ({
 
 export default function Player(props) {
   const [trackDuration, setDuration] = useState(0);
-  const [currentTime, setCurrentTime] = useState(0);
   const {theme} = useTheme();
+  const [currentTime, setCurrentTime] = useState(0);
   const styles = useStyles(theme);
   const [playing, setPlaying] = useState(false);
   const [position, setPosition] = useState(0);
-  const [currentTrack, setCurrentTrack] = useState(
-    track[props.route.params.trackIndex],
-  );
-  const handlePlaybutton = () => {
+  // const [currentTrack, setCurrentTrack] = useState(
+  //   track[props.route.params.trackIndex],
+  // );
+  const currentTrack = track[props.route.params.trackIndex];
+  const handlePlaybutton = async () => {
     setPlaying(!playing);
-    return playing ? TrackPlayer.pause() : TrackPlayer.play();
+    playing ? TrackPlayer.pause() : TrackPlayer.play();
+    // await AsyncStorage.getItem('user.uid').then(async uid => {
+    //   await firestore()
+    //     .collection('user_data')
+    //     .doc(uid)
+    //     .get()
+    //     .then(async d => {
+    //       // await TrackPlayer.seekTo(parseFloat(d.data().timestamp));
+    //       // console.log(parseFloat(d.data().timestamp));
+    //       // await TrackPlayer.seekTo(39.61117790076028);
+    //       await handleSeek(parseFloat(d.data().timestamp));
+    //     });
+    // });
   };
   const handleRateChange = async sign => {
     await getRate().then(rate => {
       setRate(rate + sign * 0.25);
+    });
+  };
+  const handleSeek = async seekTime => {
+    await TrackPlayer.getDuration().then(async dur => {
+      console.log(seekTime * 0.01 * dur);
+      await TrackPlayer.seekTo(seekTime * 0.01 * dur);
     });
   };
   // const getCurrentTrack = useCallback(async () => {
@@ -128,29 +134,54 @@ export default function Player(props) {
 
   const getCurrentPos = useCallback(async () => {
     await TrackPlayer.getPosition().then(async pos => {
-      await TrackPlayer.getDuration().then(dur => {
+      await TrackPlayer.getDuration().then(async dur => {
         if ((pos / dur) * 100) {
           setPosition((pos / dur) * 100);
           setCurrentTime(pos);
-          console.log(secondsToDuration(pos));
+          await AsyncStorage.setItem(
+            'current_time',
+            ((pos / dur) * 100).toString(),
+          );
+          // console.log(secondsToDuration(pos));
         }
       });
     });
-  }, [position]);
-
+  }, []);
   useEffect(() => {
     (async () => {
       await TrackPlayer.setupPlayer({});
       await TrackPlayer.add(track);
+      await TrackPlayer.updateOptions({
+        stopWithApp: false,
+        capabilities: [
+          TrackPlayer.CAPABILITY_PLAY,
+          TrackPlayer.CAPABILITY_PAUSE,
+          TrackPlayer.CAPABILITY_JUMP_BACKWARD,
+          TrackPlayer.CAPABILITY_JUMP_FORWARD,
+          TrackPlayer.CAPABILITY_STOP,
+          TrackPlayer.CAPABILITY_SKIP_TO_NEXT,
+          TrackPlayer.CAPABILITY_SKIP_TO_PREVIOUS,
+          TrackPlayer.CAPABILITY_SEEK_TO,
+        ],
+        compactCapabilities: [
+          TrackPlayer.CAPABILITY_PLAY,
+          TrackPlayer.CAPABILITY_PAUSE,
+          TrackPlayer.CAPABILITY_STOP,
+          TrackPlayer.CAPABILITY_SKIP_TO_NEXT,
+          TrackPlayer.CAPABILITY_SKIP_TO_PREVIOUS,
+          TrackPlayer.CAPABILITY_SEEK_TO,
+        ],
+        jumpInterval: 10,
+      });
     })();
-    return async () => {
-      await TrackPlayer.destroy();
+    return () => {
+      TrackPlayer.destroy();
     };
   }, []);
-
   useEffect(() => {
     (async () => {
       await TrackPlayer.getDuration().then(dur => {
+        console.log('durr', dur);
         setDuration(secondsToDuration(dur));
       });
     })();
@@ -159,15 +190,16 @@ export default function Player(props) {
     }, 1000);
     return () => {
       clearInterval(interval);
+      props.route.params.updateFirestoreTimestamp();
     };
-  }, [getCurrentPos]);
+  }, [getCurrentPos, props.route.params]);
   return (
     <View style={styles.body}>
       <View style={styles.emptyBox} />
       <Card containerStyle={styles.player}>
         <Card.Title>{track.title}</Card.Title>
         <Card.Divider />
-        <View style={styles.playbackPic}>
+        <View>
           {/* <CircularSlider value={10} onChange={() => {}} /> */}
           {/* <CircularSliderUniverse
             value={10}
@@ -182,8 +214,7 @@ export default function Player(props) {
             value={position}
             maximumValue={100}
             minimumValue={0}
-            onValueChange={v => console.log(v)}
-            // thumbProps={{}}
+            onSlidingComplete={handleSeek}
           />
         </View>
         <View style={styles.buttonContainer}>
@@ -207,7 +238,7 @@ export default function Player(props) {
               +0.25
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.button} onPress={() => skip(1000)}>
+          <TouchableOpacity style={styles.button} onPress={() => skip(10)}>
             <Icon name="skip-next" size={45} />
           </TouchableOpacity>
         </View>

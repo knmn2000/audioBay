@@ -1,4 +1,10 @@
-import React, {useEffect} from 'react';
+import React, {
+  useLayoutEffect,
+  useEffect,
+  useState,
+  useCallback,
+  useContext,
+} from 'react';
 import {
   Button,
   ListItem,
@@ -8,6 +14,9 @@ import {
 } from 'react-native-elements';
 import {View} from 'react-native';
 import track from '../temp';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import firestore from '@react-native-firebase/firestore';
+import {AuthContext} from '../services/AuthService';
 
 const useStyles = makeStyles((theme, props) => ({
   body: {
@@ -36,10 +45,25 @@ const useStyles = makeStyles((theme, props) => ({
     backgroundColor: 'white',
   },
 }));
+/*
+TODO:
+instead of using async storage for uid
+make a component Home, which has child homeComponent.
+Wrap authprovider around Home.
+*/
 
 export default function Home({navigation}) {
   const {theme} = useTheme();
   const styles = useStyles(theme);
+  const updateFirestoreTimestamp = useCallback(async () => {
+    await AsyncStorage.getItem('current_time').then(async val => {
+      await AsyncStorage.getItem('user.uid').then(uid => {
+        firestore().collection('user_data').doc(uid).set({
+          timestamp: val,
+        });
+      });
+    });
+  }, []);
   return (
     <View style={styles.body}>
       <View style={styles.nav}>
@@ -50,7 +74,12 @@ export default function Home({navigation}) {
           <ListItem
             key={i}
             bottomDivider
-            onPress={() => navigation.navigate('Player', {trackIndex: i})}>
+            onPress={() =>
+              navigation.navigate('Player', {
+                trackIndex: i,
+                updateFirestoreTimestamp,
+              })
+            }>
             <ListItem.Content>
               <ListItem.Title>{l.title}</ListItem.Title>
               <ListItem.Subtitle>{l.author}</ListItem.Subtitle>

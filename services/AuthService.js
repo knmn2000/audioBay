@@ -24,7 +24,7 @@ export const AuthService = ({children}) => {
       Alert.alert('Alert', 'Signed in!', [
         {
           text: 'Signed in!',
-          onPress: () => console.log('close'),
+          onPress: () => console.log('signin'),
           style: 'default',
         },
       ]);
@@ -52,7 +52,7 @@ export const AuthService = ({children}) => {
     Alert.alert('Alert', 'Signed out!', [
       {
         text: 'Signed out!',
-        onPress: () => console.log('close'),
+        onPress: () => console.log('signout'),
         style: 'default',
       },
     ]);
